@@ -175,6 +175,119 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block home" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://kosmosr.github.io/2020/08/03/java/CAS/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="https://blog-1256602811.cos.ap-nanjing.myqcloud.com/avatar.jpg">
+      <meta itemprop="name" content="kosmosr">
+      <meta itemprop="description" content="Stay hungry, Stay foolish">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="kosmosr's blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          
+            <a href="/2020/08/03/java/CAS/" class="post-title-link" itemprop="url">CAS原理及应用</a>
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-08-03 07:03:00" itemprop="dateCreated datePublished" datetime="2020-08-03T07:03:00+00:00">2020-08-03</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-08-02 23:07:48" itemprop="dateModified" datetime="2020-08-02T23:07:48+00:00">2020-08-02</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/JAVA/" itemprop="url" rel="index">
+                    <span itemprop="name">JAVA</span>
+                  </a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="介绍"><a href="#介绍" class="headerlink" title="介绍"></a>介绍</h2><p>CAS全称<strong>Compare and Swap</strong>（比较并交换），是一种无锁算法；在不使用锁的情况下保证线程安全</p>
+<h2 id="实现"><a href="#实现" class="headerlink" title="实现"></a>实现</h2><p>使用的是一种<strong>乐观锁</strong>的思想，即：假设共享资源不会发生冲突，所以<strong>不会加锁</strong>，因此线程将不断执行，当碰到冲突时，就<strong>重试当前操作</strong>直到没用冲突为止</p>
+<p><img src="https://www.jianguoyun.com/c/tblv2/yel2sklqlILV9uS83DySlK95V-eJSWsaU4Qk__lORBxHysIBEFdHk--HKTt3FiRygPgLI1Is/S7SdiLsHJRO3h6zHswUiug/l" alt=""></p>
+<h3 id="如何鉴别冲突"><a href="#如何鉴别冲突" class="headerlink" title="如何鉴别冲突"></a>如何鉴别冲突</h3><p>CAS算法一般涉及三个参数：</p>
+<ol>
+<li><p>准备更新的变量V</p>
+</li>
+<li><p>期望值E</p>
+</li>
+<li><p>准备更新的值N</p>
+<p>仅当V的值 <code>==</code>E时，CAS通过<strong>原子方式</strong>用新值N来更新V的值（比较+更新整体是一个原子操作）；否则不会进行任何操作</p>
+</li>
+</ol>
+<h2 id="无锁好处"><a href="#无锁好处" class="headerlink" title="无锁好处"></a>无锁好处</h2><p>如果多个线程同时使用CAS操作一个变量时，只有一个线程能够修改成功；其余线程均会失败，并继续重试</p>
+<p>因为其他线程没有被挂起，所以不会发生线程上下文切换带来的开销</p>
+<p>适用于<strong>读操作多</strong>的场景，不加锁的特点使其读操作的性能大幅提升</p>
+<h2 id="JAVA中实现"><a href="#JAVA中实现" class="headerlink" title="JAVA中实现"></a>JAVA中实现</h2><p>在包<code>java.util.concurrent</code>下的原子类，就是通过CAS来实现了乐观锁，如下是<code>AtomicInteger</code>的源码：</p>
+<p><img src="https://awps-assets.meituan.net/mit-x/blog-images-bundle-2018b/feda866e.png" alt="img"></p>
+<ul>
+<li><p>unsafe：位于<code>sun.misc</code>包下的一个类，可以像C语言一样操作内存空间，主要用来调用CAS方法</p>
+</li>
+<li><p>valueOffset：<code>value</code>地址偏移量</p>
+</li>
+<li><p>value：<code>AtomicInteger</code>实例值，并且使用<code>volatile</code>关键字保证线程可见性</p>
+</li>
+</ul>
+<p>相关源码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// ------------------------- JDK 8 -------------------------</span></span><br><span class="line"><span class="comment">// AtomicInteger 自增方法</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">int</span> <span class="title">incrementAndGet</span><span class="params">()</span> </span>&#123;</span><br><span class="line">  <span class="keyword">return</span> unsafe.getAndAddInt(<span class="keyword">this</span>, valueOffset, <span class="number">1</span>) + <span class="number">1</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Unsafe.class</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">int</span> <span class="title">getAndAddInt</span><span class="params">(Object var1, <span class="keyword">long</span> var2, <span class="keyword">int</span> var4)</span> </span>&#123;</span><br><span class="line">  <span class="keyword">int</span> var5;</span><br><span class="line">  <span class="keyword">do</span> &#123;</span><br><span class="line">      var5 = <span class="keyword">this</span>.getIntVolatile(var1, var2);</span><br><span class="line">  &#125; <span class="keyword">while</span>(!<span class="keyword">this</span>.compareAndSwapInt(var1, var2, var5, var5 + var4));</span><br><span class="line">  <span class="keyword">return</span> var5;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// ------------------------- OpenJDK 8 -------------------------</span></span><br><span class="line"><span class="comment">// Unsafe.java</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">int</span> <span class="title">getAndAddInt</span><span class="params">(Object o, <span class="keyword">long</span> offset, <span class="keyword">int</span> delta)</span> </span>&#123;</span><br><span class="line">   <span class="keyword">int</span> v;</span><br><span class="line">   <span class="keyword">do</span> &#123;</span><br><span class="line">       v = getIntVolatile(o, offset);</span><br><span class="line">   &#125; <span class="keyword">while</span> (!compareAndSwapInt(o, offset, v, v + delta));</span><br><span class="line">   <span class="keyword">return</span> v;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>其中整个<strong>比较+更新</strong>操作封装在<code>compareAndSwapInt()</code>中，该方法是通过调用JNI方法中一个CPU指令完成的，属于原子操作</p>
+<p>其中的CPU指令即为<strong>cmpxchg</strong>，在内部比较寄存器中的A和内存中的值V，如果相等，就把B值存入内存中</p>
+<h3 id="CAS存在的问题"><a href="#CAS存在的问题" class="headerlink" title="CAS存在的问题"></a>CAS存在的问题</h3><ol>
+<li>循环时间开销大：如果CAS操作长时间不成功（说明写操作比较多），会导致其一直自旋，给CPU带来很大的开销</li>
+<li>ABA问题，解决思路就是使用版本号，每次操作都更新版本号<ul>
+<li>在JDK1.5版本之后，提供了一个<code>AtomicStampedReference</code>类来解决ABA问题</li>
+</ul>
+</li>
+</ol>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+        
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block home" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://kosmosr.github.io/2020/07/17/designpattern/%E6%A6%82%E6%8B%AC/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -198,10 +311,16 @@
                 <i class="fa fa-calendar-o"></i>
               </span>
               <span class="post-meta-item-text">发表于</span>
-              
 
-              <time title="创建时间：2020-07-17 14:25:00 / 修改时间：06:29:45" itemprop="dateCreated datePublished" datetime="2020-07-17T14:25:00+00:00">2020-07-17</time>
+              <time title="创建时间：2020-07-17 14:25:00" itemprop="dateCreated datePublished" datetime="2020-07-17T14:25:00+00:00">2020-07-17</time>
             </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-08-02 23:07:48" itemprop="dateModified" datetime="2020-08-02T23:07:48+00:00">2020-08-02</time>
+              </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
                 <i class="fa fa-folder-o"></i>
@@ -276,7 +395,7 @@
                   <i class="fa fa-calendar-check-o"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-07-17 06:29:45" itemprop="dateModified" datetime="2020-07-17T06:29:45+00:00">2020-07-17</time>
+                <time title="修改时间：2020-08-02 23:07:48" itemprop="dateModified" datetime="2020-08-02T23:07:48+00:00">2020-08-02</time>
               </span>
 
           
@@ -387,12 +506,12 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">2</span>
+          <span class="site-state-item-count">3</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
-        <span class="site-state-item-count">1</span>
+        <span class="site-state-item-count">2</span>
         <span class="site-state-item-name">分类</span>
       </div>
       <div class="site-state-item site-state-tags">
