@@ -46,23 +46,23 @@
   };
 </script>
 
-  <meta name="description" content="介绍CAS全称Compare and Swap（比较并交换），是一种无锁算法；在不使用锁的情况下保证线程安全 实现使用的是一种乐观锁的思想，即：假设共享资源不会发生冲突，所以不会加锁，因此线程将不断执行，当碰到冲突时，就重试当前操作直到没用冲突为止  如何鉴别冲突CAS算法一般涉及三个参数：  准备更新的变量V  期望值E  准备更新的值N 仅当V的值 &#x3D;&#x3D;E时，CAS通过原子方式用新值N来更新V">
+  <meta name="description" content="本文章探讨的是HotSpot虚拟机下JVM堆中的对象布局   JVM堆的对象布局，主要如下图所示   对象头 Mark Word（标记字段）：在32位及64位虚拟机存储长度分别为32bit，64bit； 其中主要存储对象自身的运行时数据，根据对象状态复用自己的存储空间根据锁标志位的变化而变化  Klass Point（类型指针）：指向类型元数据指针，通过该指针可以确定这个对象是哪个类的实例">
 <meta property="og:type" content="article">
-<meta property="og:title" content="CAS原理及应用">
-<meta property="og:url" content="https://kosmosr.github.io/2020/08/03/java/CAS/index.html">
+<meta property="og:title" content="JVM堆的对象布局">
+<meta property="og:url" content="https://kosmosr.github.io/2020/08/17/java/jvm/JVM%E5%A0%86%E7%9A%84%E5%AF%B9%E8%B1%A1%E5%B8%83%E5%B1%80/index.html">
 <meta property="og:site_name" content="kosmosr&#39;s blog">
-<meta property="og:description" content="介绍CAS全称Compare and Swap（比较并交换），是一种无锁算法；在不使用锁的情况下保证线程安全 实现使用的是一种乐观锁的思想，即：假设共享资源不会发生冲突，所以不会加锁，因此线程将不断执行，当碰到冲突时，就重试当前操作直到没用冲突为止  如何鉴别冲突CAS算法一般涉及三个参数：  准备更新的变量V  期望值E  准备更新的值N 仅当V的值 &#x3D;&#x3D;E时，CAS通过原子方式用新值N来更新V">
+<meta property="og:description" content="本文章探讨的是HotSpot虚拟机下JVM堆中的对象布局   JVM堆的对象布局，主要如下图所示   对象头 Mark Word（标记字段）：在32位及64位虚拟机存储长度分别为32bit，64bit； 其中主要存储对象自身的运行时数据，根据对象状态复用自己的存储空间根据锁标志位的变化而变化  Klass Point（类型指针）：指向类型元数据指针，通过该指针可以确定这个对象是哪个类的实例">
 <meta property="og:locale" content="zh_CN">
-<meta property="og:image" content="https://www.jianguoyun.com/c/tblv2/yel2sklqlILV9uS83DySlK95V-eJSWsaU4Qk__lORBxHysIBEFdHk--HKTt3FiRygPgLI1Is/S7SdiLsHJRO3h6zHswUiug/l">
-<meta property="og:image" content="https://awps-assets.meituan.net/mit-x/blog-images-bundle-2018b/feda866e.png">
-<meta property="article:published_time" content="2020-08-03T07:03:00.000Z">
+<meta property="og:image" content="https://blog-1256602811.file.myqcloud.com/16d189761607da75">
+<meta property="og:image" content="https://blog-1256602811.file.myqcloud.com/16d189761d997c70">
+<meta property="article:published_time" content="2020-08-17T10:20:00.000Z">
 <meta property="article:modified_time" content="2020-08-17T02:28:29.297Z">
 <meta property="article:author" content="kosmosr">
 <meta property="article:tag" content="kosmosr">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="https://www.jianguoyun.com/c/tblv2/yel2sklqlILV9uS83DySlK95V-eJSWsaU4Qk__lORBxHysIBEFdHk--HKTt3FiRygPgLI1Is/S7SdiLsHJRO3h6zHswUiug/l">
+<meta name="twitter:image" content="https://blog-1256602811.file.myqcloud.com/16d189761607da75">
 
-<link rel="canonical" href="https://kosmosr.github.io/2020/08/03/java/CAS/">
+<link rel="canonical" href="https://kosmosr.github.io/2020/08/17/java/jvm/JVM%E5%A0%86%E7%9A%84%E5%AF%B9%E8%B1%A1%E5%B8%83%E5%B1%80/">
 
 
 <script id="page-configurations">
@@ -74,7 +74,7 @@
   };
 </script>
 
-  <title>CAS原理及应用 | kosmosr's blog</title>
+  <title>JVM堆的对象布局 | kosmosr's blog</title>
   
 
 
@@ -180,7 +180,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://kosmosr.github.io/2020/08/03/java/CAS/">
+    <link itemprop="mainEntityOfPage" href="https://kosmosr.github.io/2020/08/17/java/jvm/JVM%E5%A0%86%E7%9A%84%E5%AF%B9%E8%B1%A1%E5%B8%83%E5%B1%80/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="https://blog-1256602811.cos.ap-nanjing.myqcloud.com/avatar.jpg">
@@ -193,7 +193,7 @@
     </span>
       <header class="post-header">
         <h1 class="post-title" itemprop="name headline">
-          CAS原理及应用
+          JVM堆的对象布局
         </h1>
 
         <div class="post-meta">
@@ -202,16 +202,10 @@
                 <i class="fa fa-calendar-o"></i>
               </span>
               <span class="post-meta-item-text">发表于</span>
+              
 
-              <time title="创建时间：2020-08-03 07:03:00" itemprop="dateCreated datePublished" datetime="2020-08-03T07:03:00+00:00">2020-08-03</time>
+              <time title="创建时间：2020-08-17 10:20:00 / 修改时间：02:28:29" itemprop="dateCreated datePublished" datetime="2020-08-17T10:20:00+00:00">2020-08-17</time>
             </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-calendar-check-o"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-08-17 02:28:29" itemprop="dateModified" datetime="2020-08-17T02:28:29+00:00">2020-08-17</time>
-              </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
                 <i class="fa fa-folder-o"></i>
@@ -220,6 +214,18 @@
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
                   <a href="/categories/JAVA/" itemprop="url" rel="index">
                     <span itemprop="name">JAVA</span>
+                  </a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/JAVA/jvm/" itemprop="url" rel="index">
+                    <span itemprop="name">jvm</span>
+                  </a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/JAVA/jvm/%E9%94%81/" itemprop="url" rel="index">
+                    <span itemprop="name">锁</span>
                   </a>
                 </span>
             </span>
@@ -235,44 +241,36 @@
     <div class="post-body" itemprop="articleBody">
 
       
-        <h2 id="介绍"><a href="#介绍" class="headerlink" title="介绍"></a>介绍</h2><p>CAS全称<strong>Compare and Swap</strong>（比较并交换），是一种无锁算法；在不使用锁的情况下保证线程安全</p>
-<h2 id="实现"><a href="#实现" class="headerlink" title="实现"></a>实现</h2><p>使用的是一种<strong>乐观锁</strong>的思想，即：假设共享资源不会发生冲突，所以<strong>不会加锁</strong>，因此线程将不断执行，当碰到冲突时，就<strong>重试当前操作</strong>直到没用冲突为止</p>
-<p><img src="https://www.jianguoyun.com/c/tblv2/yel2sklqlILV9uS83DySlK95V-eJSWsaU4Qk__lORBxHysIBEFdHk--HKTt3FiRygPgLI1Is/S7SdiLsHJRO3h6zHswUiug/l" alt=""></p>
-<h3 id="如何鉴别冲突"><a href="#如何鉴别冲突" class="headerlink" title="如何鉴别冲突"></a>如何鉴别冲突</h3><p>CAS算法一般涉及三个参数：</p>
-<ol>
-<li><p>准备更新的变量V</p>
-</li>
-<li><p>期望值E</p>
-</li>
-<li><p>准备更新的值N</p>
-<p>仅当V的值 <code>==</code>E时，CAS通过<strong>原子方式</strong>用新值N来更新V的值（比较+更新整体是一个原子操作）；否则不会进行任何操作</p>
-</li>
-</ol>
-<h2 id="无锁好处"><a href="#无锁好处" class="headerlink" title="无锁好处"></a>无锁好处</h2><p>如果多个线程同时使用CAS操作一个变量时，只有一个线程能够修改成功；其余线程均会失败，并继续重试</p>
-<p>因为其他线程没有被挂起，所以不会发生线程上下文切换带来的开销</p>
-<p>适用于<strong>读操作多</strong>的场景，不加锁的特点使其读操作的性能大幅提升</p>
-<h2 id="JAVA中实现"><a href="#JAVA中实现" class="headerlink" title="JAVA中实现"></a>JAVA中实现</h2><p>在包<code>java.util.concurrent</code>下的原子类，就是通过CAS来实现了乐观锁，如下是<code>AtomicInteger</code>的源码：</p>
-<p><img src="https://awps-assets.meituan.net/mit-x/blog-images-bundle-2018b/feda866e.png" alt="img"></p>
-<ul>
-<li><p>unsafe：位于<code>sun.misc</code>包下的一个类，可以像C语言一样操作内存空间，主要用来调用CAS方法</p>
-</li>
-<li><p>valueOffset：<code>value</code>地址偏移量</p>
-</li>
-<li><p>value：<code>AtomicInteger</code>实例值，并且使用<code>volatile</code>关键字保证线程可见性</p>
-</li>
-</ul>
-<p>相关源码：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// ------------------------- JDK 8 -------------------------</span></span><br><span class="line"><span class="comment">// AtomicInteger 自增方法</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">int</span> <span class="title">incrementAndGet</span><span class="params">()</span> </span>&#123;</span><br><span class="line">  <span class="keyword">return</span> unsafe.getAndAddInt(<span class="keyword">this</span>, valueOffset, <span class="number">1</span>) + <span class="number">1</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Unsafe.class</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">int</span> <span class="title">getAndAddInt</span><span class="params">(Object var1, <span class="keyword">long</span> var2, <span class="keyword">int</span> var4)</span> </span>&#123;</span><br><span class="line">  <span class="keyword">int</span> var5;</span><br><span class="line">  <span class="keyword">do</span> &#123;</span><br><span class="line">      var5 = <span class="keyword">this</span>.getIntVolatile(var1, var2);</span><br><span class="line">  &#125; <span class="keyword">while</span>(!<span class="keyword">this</span>.compareAndSwapInt(var1, var2, var5, var5 + var4));</span><br><span class="line">  <span class="keyword">return</span> var5;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// ------------------------- OpenJDK 8 -------------------------</span></span><br><span class="line"><span class="comment">// Unsafe.java</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">int</span> <span class="title">getAndAddInt</span><span class="params">(Object o, <span class="keyword">long</span> offset, <span class="keyword">int</span> delta)</span> </span>&#123;</span><br><span class="line">   <span class="keyword">int</span> v;</span><br><span class="line">   <span class="keyword">do</span> &#123;</span><br><span class="line">       v = getIntVolatile(o, offset);</span><br><span class="line">   &#125; <span class="keyword">while</span> (!compareAndSwapInt(o, offset, v, v + delta));</span><br><span class="line">   <span class="keyword">return</span> v;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+        <blockquote>
+<blockquote>
+<p>本文章探讨的是HotSpot虚拟机下JVM堆中的对象布局</p>
+</blockquote>
+</blockquote>
+<p>JVM堆的对象布局，主要如下图所示</p>
+<img src="https://blog-1256602811.file.myqcloud.com/16d189761607da75" style="zoom:50%;" />
 
-<p>其中整个<strong>比较+更新</strong>操作封装在<code>compareAndSwapInt()</code>中，该方法是通过调用JNI方法中一个CPU指令完成的，属于原子操作</p>
-<p>其中的CPU指令即为<strong>cmpxchg</strong>，在内部比较寄存器中的A和内存中的值V，如果相等，就把B值存入内存中</p>
-<h3 id="CAS存在的问题"><a href="#CAS存在的问题" class="headerlink" title="CAS存在的问题"></a>CAS存在的问题</h3><ol>
-<li>循环时间开销大：如果CAS操作长时间不成功（说明写操作比较多），会导致其一直自旋，给CPU带来很大的开销</li>
-<li>ABA问题，解决思路就是使用版本号，每次操作都更新版本号<ul>
-<li>在JDK1.5版本之后，提供了一个<code>AtomicStampedReference</code>类来解决ABA问题</li>
-</ul>
+<h2 id="对象头"><a href="#对象头" class="headerlink" title="对象头"></a>对象头</h2><ul>
+<li><p><strong>Mark Word（标记字段）</strong>：在32位及64位虚拟机存储长度分别为32bit，64bit；</p>
+<p>其中主要存储对象自身的运行时数据，根据对象状态复用自己的存储空间根据锁标志位的变化而变化</p>
 </li>
-</ol>
+<li><p><strong>Klass Point（类型指针）</strong>：指向类型元数据指针，通过该指针可以确定这个对象是哪个类的实例</p>
+</li>
+<li><p><strong>数组长度</strong>：如果该对象为数组，那么将会专门保存该数组的长度</p>
+</li>
+</ul>
+<h2 id="Mark-Word"><a href="#Mark-Word" class="headerlink" title="Mark Word"></a>Mark Word</h2><p>是<strong>synchronized</strong>实现线程同步的关键，该字段中的锁标志位，级别从低到高分别为：</p>
+<ul>
+<li>无锁</li>
+<li>偏向锁</li>
+<li>轻量级锁</li>
+<li>重量级锁</li>
+</ul>
+<p>在64位的下的结构是这样的</p>
+<img src="https://blog-1256602811.file.myqcloud.com/16d189761d997c70" style="zoom:50%;" />
+
+<h2 id="Monitor（管程）"><a href="#Monitor（管程）" class="headerlink" title="Monitor（管程）"></a>Monitor（管程）</h2><p><strong>synchronized</strong>就是在Java中对Monitor的MESA模型的实现；在Java中每一个对象都是天生的Monitor，在HotSpot虚拟机中，<strong>Monitor是由ObjectMonitor实现的</strong>，其中关键的结构如下</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">class <span class="title">ObjectMonitor</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 记录个数，用来支持可重入</span></span><br><span class="line">    _count = <span class="number">0</span>;</span><br><span class="line">    <span class="comment">// 处于Wait状态的线程，会被加入到_WaitSet</span></span><br><span class="line">    _WaitSet = <span class="literal">NULL</span>;</span><br><span class="line">    <span class="comment">// 处于阻塞(Block)状态的线程，会被加入到该列表</span></span><br><span class="line">    _EntrySet = <span class="literal">NULL</span>;</span><br><span class="line">    <span class="comment">// 持有Monitor的线程</span></span><br><span class="line">    _owner = <span class="literal">NULL</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
 
     </div>
 
@@ -288,7 +286,7 @@
   </li>
   <li class="post-copyright-link">
     <strong>本文链接：</strong>
-    <a href="https://kosmosr.github.io/2020/08/03/java/CAS/" title="CAS原理及应用">https://kosmosr.github.io/2020/08/03/java/CAS/</a>
+    <a href="https://kosmosr.github.io/2020/08/17/java/jvm/JVM%E5%A0%86%E7%9A%84%E5%AF%B9%E8%B1%A1%E5%B8%83%E5%B1%80/" title="JVM堆的对象布局">https://kosmosr.github.io/2020/08/17/java/jvm/JVM堆的对象布局/</a>
   </li>
   <li class="post-copyright-license">
     <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/zh" rel="noopener" target="_blank"><i class="fa fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
@@ -305,13 +303,10 @@
         
     <div class="post-nav">
       <div class="post-nav-item">
-    <a href="/2020/07/17/designpattern/%E6%A6%82%E6%8B%AC/" rel="prev" title="概括">
-      <i class="fa fa-chevron-left"></i> 概括
+    <a href="/2020/08/17/java/lock/synchronized%E9%94%81%E4%BC%98%E5%8C%96/" rel="prev" title="Synchronized锁优化">
+      <i class="fa fa-chevron-left"></i> Synchronized锁优化
     </a></div>
-      <div class="post-nav-item">
-    <a href="/2020/08/17/java/lock/synchronized%E9%94%81%E4%BC%98%E5%8C%96/" rel="next" title="Synchronized锁优化">
-      Synchronized锁优化 <i class="fa fa-chevron-right"></i>
-    </a></div>
+      <div class="post-nav-item"></div>
     </div>
       </footer>
     
@@ -371,7 +366,7 @@
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
-          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#介绍"><span class="nav-number">1.</span> <span class="nav-text">介绍</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#实现"><span class="nav-number">2.</span> <span class="nav-text">实现</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#如何鉴别冲突"><span class="nav-number">2.1.</span> <span class="nav-text">如何鉴别冲突</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#无锁好处"><span class="nav-number">3.</span> <span class="nav-text">无锁好处</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#JAVA中实现"><span class="nav-number">4.</span> <span class="nav-text">JAVA中实现</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#CAS存在的问题"><span class="nav-number">4.1.</span> <span class="nav-text">CAS存在的问题</span></a></li></ol></li></ol></div>
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#对象头"><span class="nav-number">1.</span> <span class="nav-text">对象头</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Mark-Word"><span class="nav-number">2.</span> <span class="nav-text">Mark Word</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Monitor（管程）"><span class="nav-number">3.</span> <span class="nav-text">Monitor（管程）</span></a></li></ol></div>
       </div>
       <!--/noindex-->
 

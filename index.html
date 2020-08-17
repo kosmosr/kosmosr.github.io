@@ -175,6 +175,242 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block home" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://kosmosr.github.io/2020/08/17/java/jvm/JVM%E5%A0%86%E7%9A%84%E5%AF%B9%E8%B1%A1%E5%B8%83%E5%B1%80/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="https://blog-1256602811.cos.ap-nanjing.myqcloud.com/avatar.jpg">
+      <meta itemprop="name" content="kosmosr">
+      <meta itemprop="description" content="Stay hungry, Stay foolish">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="kosmosr's blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          
+            <a href="/2020/08/17/java/jvm/JVM%E5%A0%86%E7%9A%84%E5%AF%B9%E8%B1%A1%E5%B8%83%E5%B1%80/" class="post-title-link" itemprop="url">JVM堆的对象布局</a>
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2020-08-17 10:20:00 / 修改时间：02:28:29" itemprop="dateCreated datePublished" datetime="2020-08-17T10:20:00+00:00">2020-08-17</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/JAVA/" itemprop="url" rel="index">
+                    <span itemprop="name">JAVA</span>
+                  </a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/JAVA/jvm/" itemprop="url" rel="index">
+                    <span itemprop="name">jvm</span>
+                  </a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/JAVA/jvm/%E9%94%81/" itemprop="url" rel="index">
+                    <span itemprop="name">锁</span>
+                  </a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <blockquote>
+<blockquote>
+<p>本文章探讨的是HotSpot虚拟机下JVM堆中的对象布局</p>
+</blockquote>
+</blockquote>
+<p>JVM堆的对象布局，主要如下图所示</p>
+<img src="https://blog-1256602811.file.myqcloud.com/16d189761607da75" style="zoom:50%;" />
+
+<h2 id="对象头"><a href="#对象头" class="headerlink" title="对象头"></a>对象头</h2><ul>
+<li><p><strong>Mark Word（标记字段）</strong>：在32位及64位虚拟机存储长度分别为32bit，64bit；</p>
+<p>其中主要存储对象自身的运行时数据，根据对象状态复用自己的存储空间根据锁标志位的变化而变化</p>
+</li>
+<li><p><strong>Klass Point（类型指针）</strong>：指向类型元数据指针，通过该指针可以确定这个对象是哪个类的实例</p>
+</li>
+<li><p><strong>数组长度</strong>：如果该对象为数组，那么将会专门保存该数组的长度</p>
+</li>
+</ul>
+<h2 id="Mark-Word"><a href="#Mark-Word" class="headerlink" title="Mark Word"></a>Mark Word</h2><p>是<strong>synchronized</strong>实现线程同步的关键，该字段中的锁标志位，级别从低到高分别为：</p>
+<ul>
+<li>无锁</li>
+<li>偏向锁</li>
+<li>轻量级锁</li>
+<li>重量级锁</li>
+</ul>
+<p>在64位的下的结构是这样的</p>
+<img src="https://blog-1256602811.file.myqcloud.com/16d189761d997c70" style="zoom:50%;" />
+
+<h2 id="Monitor（管程）"><a href="#Monitor（管程）" class="headerlink" title="Monitor（管程）"></a>Monitor（管程）</h2><p><strong>synchronized</strong>就是在Java中对Monitor的MESA模型的实现；在Java中每一个对象都是天生的Monitor，在HotSpot虚拟机中，<strong>Monitor是由ObjectMonitor实现的</strong>，其中关键的结构如下</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">class <span class="title">ObjectMonitor</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 记录个数，用来支持可重入</span></span><br><span class="line">    _count = <span class="number">0</span>;</span><br><span class="line">    <span class="comment">// 处于Wait状态的线程，会被加入到_WaitSet</span></span><br><span class="line">    _WaitSet = <span class="literal">NULL</span>;</span><br><span class="line">    <span class="comment">// 处于阻塞(Block)状态的线程，会被加入到该列表</span></span><br><span class="line">    _EntrySet = <span class="literal">NULL</span>;</span><br><span class="line">    <span class="comment">// 持有Monitor的线程</span></span><br><span class="line">    _owner = <span class="literal">NULL</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+        
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block home" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://kosmosr.github.io/2020/08/17/java/lock/synchronized%E9%94%81%E4%BC%98%E5%8C%96/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="https://blog-1256602811.cos.ap-nanjing.myqcloud.com/avatar.jpg">
+      <meta itemprop="name" content="kosmosr">
+      <meta itemprop="description" content="Stay hungry, Stay foolish">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="kosmosr's blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          
+            <a href="/2020/08/17/java/lock/synchronized%E9%94%81%E4%BC%98%E5%8C%96/" class="post-title-link" itemprop="url">Synchronized锁优化</a>
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2020-08-17 10:20:00 / 修改时间：02:28:29" itemprop="dateCreated datePublished" datetime="2020-08-17T10:20:00+00:00">2020-08-17</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/JAVA/" itemprop="url" rel="index">
+                    <span itemprop="name">JAVA</span>
+                  </a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/JAVA/%E9%94%81/" itemprop="url" rel="index">
+                    <span itemprop="name">锁</span>
+                  </a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="Synchronized锁优化"><a href="#Synchronized锁优化" class="headerlink" title="Synchronized锁优化"></a>Synchronized锁优化</h2><p>Synchronized在JDK6之前，实现比较简单粗暴，由此带来了效率低下的问题，而在JDK6及其之后的版本，对其进行了优化</p>
+<h2 id="优先前"><a href="#优先前" class="headerlink" title="优先前"></a>优先前</h2><p>Synchronized在JDK6之前，通过对象内部的Monitor来实现线程同步，而Monitor又依赖于底层操作系统的<strong>Mutex Lock（互斥锁）</strong>来实现的线程同步；</p>
+<p>而操作系统实现线程间的切换需要从用户态转换到内核态，这个转换需要相对比较长的时间，即使你的代码块非常简单，导致状态转换消耗的时间可能比代码执行的时间还要长，这就是JDK6之前synchronized效率低的原因，这种实现方式，我们称之为<strong>重量级锁</strong></p>
+<h2 id="优化后"><a href="#优化后" class="headerlink" title="优化后"></a>优化后</h2><p>在JDK6及其之后版本中，加入了<strong>偏向锁</strong>和<strong>轻量级锁</strong>，且锁级别由低到高分别是是：无锁、偏向锁、轻量级锁、重量级锁</p>
+<p>且锁的等级只可以升级，不能降级（其实HotSpot支持锁降级，但是条件比较苛刻，基本认为不能降级）</p>
+<blockquote>
+<p>参考HotSpot锁的降级：<a href="https://segmentfault.com/q/1010000020803904/a-1020000020811620" target="_blank" rel="noopener">https://segmentfault.com/q/1010000020803904/a-1020000020811620</a></p>
+</blockquote>
+<h3 id="偏向锁"><a href="#偏向锁" class="headerlink" title="偏向锁"></a>偏向锁</h3><p>JDK中默认开启偏向锁，由JVM参数：<code>-XX:+UseBiasedLocking</code>控制</p>
+<p>HotSpot作者经过研究实践发现，<strong>在大多数情况下，锁不仅不存在多线程竞争，而且总是由同一线程多次获得</strong>，为了让线程获得锁的代价更低，引进了偏向锁</p>
+<h4 id="优势"><a href="#优势" class="headerlink" title="优势"></a>优势</h4><p>为了在没有多线程竞争的情况下尽量<strong>减少不必要的轻量级锁执行路径</strong>；因为轻量级锁的加锁解锁操作是需要依赖<strong>多次CAS</strong>原子指令的，而偏向锁只需要在置换ThreadID的时候依赖一次CAS原子指令</p>
+<p>适合无竞争的场景，理想的情况为总是由同一个线程去访问同步块、获取某个对象的锁</p>
+<h3 id="轻量级锁"><a href="#轻量级锁" class="headerlink" title="轻量级锁"></a>轻量级锁</h3><p>进入条件</p>
+<ul>
+<li>当偏向锁关闭时</li>
+<li>当多个线程竞争偏向锁</li>
+</ul>
+<h4 id="优势-1"><a href="#优势-1" class="headerlink" title="优势"></a>优势</h4><p>在没用多线程竞争的前提下，减少传统的重量级锁使用操作系统互斥量时产生的性能消耗<br>当线程竞争锁失败时，不断通过<strong>自旋</strong>获取锁，当自旋达到一定次数时，放弃自旋膨胀成为重量级锁<br>适用于少量线程交替获取锁</p>
+<h3 id="重量级锁"><a href="#重量级锁" class="headerlink" title="重量级锁"></a>重量级锁</h3><p>通过对象内部的Monitor实现，此时对象头的Mark word指向对象ObjectMonitor对象指针，需要进行状态切换从用户态转到内核态，该锁级别下使用成本比较高</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><table>
+<thead>
+<tr>
+<th>锁</th>
+<th>优点</th>
+<th>缺点</th>
+<th>适用场景</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>偏向锁</td>
+<td>加锁与解锁不需要额外消耗，和执行非同步方法仅存在纳秒级的差距</td>
+<td>如果线程间存在锁竞争，会带来额外的锁撤销消耗</td>
+<td>只有一个线程访问同步块场景</td>
+</tr>
+<tr>
+<td>轻量级锁</td>
+<td>竞争的线程不会阻塞</td>
+<td>没有得到锁的线程需要一直自旋，消耗CPU</td>
+<td>追求响应时间，少量线程交替执行</td>
+</tr>
+<tr>
+<td>重量级锁</td>
+<td>线程竞争不使用自旋，不消耗CPU</td>
+<td>线程阻塞，状态切换成本高，响应时间缓慢</td>
+<td>追求吞吐量，同步块执行速度较长</td>
+</tr>
+</tbody></table>
+<h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><blockquote>
+<p><a href="https://juejin.im/post/6844903640197513230" target="_blank" rel="noopener">啃碎并发（七）：深入分析Synchronized原理</a><br><a href="https://tech.meituan.com/2018/11/15/java-lock.html" target="_blank" rel="noopener">不可不说的Java“锁”事</a><br><a href="https://blog.csdn.net/weixin_36586564/article/details/103633113" target="_blank" rel="noopener">JAVA并发笔记之synchronized 偏向锁 轻量级锁 重量级锁证明</a></p>
+</blockquote>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+        
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block home" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://kosmosr.github.io/2020/08/03/java/CAS/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -206,7 +442,7 @@
                   <i class="fa fa-calendar-check-o"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-08-02 23:07:48" itemprop="dateModified" datetime="2020-08-02T23:07:48+00:00">2020-08-02</time>
+                <time title="修改时间：2020-08-17 02:28:29" itemprop="dateModified" datetime="2020-08-17T02:28:29+00:00">2020-08-17</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -319,7 +555,7 @@
                   <i class="fa fa-calendar-check-o"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-08-02 23:07:48" itemprop="dateModified" datetime="2020-08-02T23:07:48+00:00">2020-08-02</time>
+                <time title="修改时间：2020-08-17 02:28:29" itemprop="dateModified" datetime="2020-08-17T02:28:29+00:00">2020-08-17</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -395,7 +631,7 @@
                   <i class="fa fa-calendar-check-o"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-08-02 23:07:48" itemprop="dateModified" datetime="2020-08-02T23:07:48+00:00">2020-08-02</time>
+                <time title="修改时间：2020-08-17 02:28:29" itemprop="dateModified" datetime="2020-08-17T02:28:29+00:00">2020-08-17</time>
               </span>
 
           
@@ -506,12 +742,12 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">3</span>
+          <span class="site-state-item-count">5</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
-        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-count">5</span>
         <span class="site-state-item-name">分类</span>
       </div>
       <div class="site-state-item site-state-tags">
